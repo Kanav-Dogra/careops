@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id              String        @id @default(uuid())
+  name            String
+  email           String
+  users           User[]
+  leads           Lead[]
+  bookings        Booking[]
+  inventory       Inventory[]
+  availability    Availability[]
+  intakeForms     IntakeForm[]   // 🔥 Added
+  automationRules AutomationRule[]
+  createdAt       DateTime      @default(now())
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  role       String
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+  createdAt  DateTime @default(now())
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  message     String
+  status      String   @default("New")
+  welcomeSent Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  business    Business @relation(fields: [businessId], references: [id])
+  businessId  String
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  date            String
+  time            String
+  email           String
+  status          String   @default("Scheduled")
+  reminderSent    Boolean  @default(false)
+  intakeSent      Boolean  @default(false)
+
+  business        Business @relation(fields: [businessId], references: [id])
+  businessId      String
+
+  intakeForm      IntakeForm? @relation(fields: [intakeFormId], references: [id])
+  intakeFormId    String?
+
+  intakeSubmission IntakeSubmission?  // 🔥 Opposite relation added
+
+  createdAt       DateTime @default(now())
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  name        String
+  quantity    Int
+  threshold   Int
+  vendorEmail String
+  business    Business @relation(fields: [businessId], references: [id])
+  businessId  String
+  createdAt   DateTime @default(now())
+}
+
+model Availability {
+  id         String   @id @default(uuid())
+  day        String
+  startTime  String
+  endTime    String
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+  createdAt  DateTime @default(now())
+}
+
+model IntakeForm {
+  id         String   @id @default(uuid())
+  title      String
+  fields     Json
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+
+  bookings   Booking[]   // 🔥 Opposite relation added
+
+  createdAt  DateTime @default(now())
+}
+
+model IntakeSubmission {
+  id        String   @id @default(uuid())
+
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  bookingId String   @unique   // one submission per booking
+
+  responses Json
+
+  createdAt DateTime @default(now())
+}
+
+model AutomationRule {
+  id         String   @id @default(uuid())
+  trigger    String
+  action     String
+  active     Boolean  @default(true)
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+  createdAt  DateTime @default(now())
+}
